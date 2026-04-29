@@ -22,19 +22,18 @@ class MyApp extends StatelessWidget {
 }
 
 class UserModel {
-   int? id;
+  int? id;
   String nama = '';
   int umur = 0;
   UserModel({this.id, required this.nama, required this.umur});
-// convert dari  map ke model
-factory UserModel.fromjson(Map<String,dynamic> json){
-  return UserModel(id:json["id"], nama:json["nama"] , umur:json["umur"]);
-}
-// convert dari model ke map 
-Map<String,dynamic> tojson(){
-  return {'id':id,'nama':nama,'umur':umur};
-}
-
+  // convert dari  map ke model
+  factory UserModel.fromjson(Map<String, dynamic> json) {
+    return UserModel(id: json["id"], nama: json["nama"], umur: json["umur"]);
+  }
+  // convert dari model ke map
+  Map<String, dynamic> tojson() {
+    return {'id': id, 'nama': nama, 'umur': umur};
+  }
 }
 
 class ListTaskScreen extends StatefulWidget {
@@ -45,21 +44,21 @@ class ListTaskScreen extends StatefulWidget {
 }
 
 class _ListTaskScreenState extends State<ListTaskScreen> {
-  @override
-   List<UserModel> tasks = [ ];
+  List<UserModel> tasks = [];
 
   @override
-  void setState(VoidCallback fn) {
-    // TODO: implement setState
-    super.setState(fn);
+  void initState() {
+    super.initState();
     _reloadData();
   }
-  void _reloadData()async{
+
+  void _reloadData() async {
     var user = await DatabseHelper.getData();
-  setState(fn){
-    tasks= user;
+    setState(() {
+      tasks = user;
+    });
   }
-  }
+
   void _form(int? id) {
     final TextEditingController nameCtrl = TextEditingController();
     final TextEditingController umurCtrl = TextEditingController();
@@ -124,7 +123,7 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
 
   void _delete(int? id) {
     showDialog(
-      context: (context),
+      context: context,
       builder: (context) => AlertDialog(
         title: Text("Pasti !!"),
         content: Text('Apkah Kamu yaqin ingin menhaous tugas ini ?'),
@@ -136,9 +135,10 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
             child: Text('Batatl'),
           ),
           TextButton(
-            onPressed: ()async {
-            await DatabseHelper.deleteData(id);
-            _reloadData();
+            onPressed: () async {
+              await DatabseHelper.deleteData(id);
+              Navigator.pop(context);
+              _reloadData();
             },
 
             child: Text('Hapus'),
@@ -149,15 +149,13 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
   }
 
   //  Save function
-  void _save(int? id, String nama, int umur) async{
-      var newUser = UserModel(id: id, nama: nama, umur: umur);
-    
+  void _save(int? id, String nama, int umur) async {
+    var newUser = UserModel(id: id, nama: nama, umur: umur);
+
     if (id != null) {
       await DatabseHelper.updateData(id, newUser);
     } else {
-      
       await DatabseHelper.insertData(newUser);
-
     }
     _reloadData();
   }
