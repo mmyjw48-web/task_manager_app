@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tasks_manager/DatabseHelper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,10 +22,19 @@ class MyApp extends StatelessWidget {
 }
 
 class UserModel {
-  int? id;
+   int? id;
   String nama = '';
   int umur = 0;
   UserModel({this.id, required this.nama, required this.umur});
+// convert dari  map ke model
+factory UserModel.fromjson(Map<String,dynamic> json){
+  return UserModel(id:json["id"], nama:json["nama"] , umur:json["umur"]);
+}
+// convert dari model ke map 
+Map<String,dynamic> tojson(){
+  return {'id':id,'nama':nama,'umur':umur};
+}
+
 }
 
 class ListTaskScreen extends StatefulWidget {
@@ -36,23 +46,31 @@ class ListTaskScreen extends StatefulWidget {
 
 class _ListTaskScreenState extends State<ListTaskScreen> {
   @override
-  final List<UserModel> tasks = [
-    UserModel(id: 1, nama: 'satu', umur: 10),
-    UserModel(id: 2, nama: 'Dua', umur: 20),
-    UserModel(id: 3, nama: 'Tiga', umur: 30),
-    UserModel(id: 4, nama: 'Empat', umur: 40),
-  ];
+   List<UserModel> tasks = [ ];
+
+  @override
+  void setState(VoidCallback fn) {
+    // TODO: implement setState
+    super.setState(fn);
+    _reloadData();
+  }
+  void _reloadData()async{
+    var user = await DatabseHelper.getData();
+  setState(fn){
+    tasks= user;
+  }
+  }
   void _form(int? id) {
-    final TextEditingController _nameCtrl = TextEditingController();
-    final TextEditingController _umurCtrl = TextEditingController();
+    final TextEditingController nameCtrl = TextEditingController();
+    final TextEditingController umurCtrl = TextEditingController();
     if (id != null) {
       final data = tasks.firstWhere((e) => e.id == id);
 
-      _nameCtrl.text = data.nama;
-      _umurCtrl.text = data.umur.toString();
+      nameCtrl.text = data.nama;
+      umurCtrl.text = data.umur.toString();
     } else {
-      _nameCtrl.clear();
-      _umurCtrl.clear();
+      nameCtrl.clear();
+      umurCtrl.clear();
     }
     showModalBottomSheet(
       isScrollControlled: true,
@@ -68,22 +86,22 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _nameCtrl,
+              controller: nameCtrl,
               decoration: InputDecoration(hintText: "Nama"),
             ),
             TextField(
-              controller: _umurCtrl,
+              controller: umurCtrl,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(hintText: "umur"),
             ),
             ElevatedButton(
               onPressed: () {
-                if (_nameCtrl.text.isEmpty || _umurCtrl.text.isEmpty) {
+                if (nameCtrl.text.isEmpty || umurCtrl.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Semua field harus diisi")),
                   );
                 }
-                int? umur = int.tryParse(_umurCtrl.text);
+                int? umur = int.tryParse(umurCtrl.text);
 
                 if (umur == null) {
                   ScaffoldMessenger.of(
@@ -91,9 +109,9 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
                   ).showSnackBar(SnackBar(content: Text("Umur harus angka")));
                   return;
                 }
-                _save(id, _nameCtrl.text, int.parse(_umurCtrl.text));
-                _nameCtrl.clear();
-                _umurCtrl.clear();
+                _save(id, nameCtrl.text, int.parse(umurCtrl.text));
+                nameCtrl.clear();
+                umurCtrl.clear();
                 Navigator.pop(context);
               },
               child: id != null ? Text('Perubarui') : Text('Tampah'),
@@ -118,12 +136,11 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
             child: Text('Batatl'),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                tasks.removeWhere((data) => data.id == id);
-              });
-              Navigator.pop(context);
+            onPressed: ()async {
+            await DatabseHelper.deleteData(id);
+            _reloadData();
             },
+
             child: Text('Hapus'),
           ),
         ],
@@ -132,22 +149,20 @@ class _ListTaskScreenState extends State<ListTaskScreen> {
   }
 
   //  Save function
-  void _save(int? id, String nama, int umur) {
-    if (id != null) {
-      final index = tasks.indexWhere((data) => data.id == id);
-      setState(() {
-        tasks[index].nama = nama;
-        tasks[index].umur = umur;
-      });
-    } else {
-      var nextUser = tasks.length + 1;
+  void _save(int? id, String nama, int umur) async{
       var newUser = UserModel(id: id, nama: nama, umur: umur);
-      setState(() {
-        tasks.add(newUser);
-      });
+    
+    if (id != null) {
+      await DatabseHelper.updateData(id, newUser);
+    } else {
+      
+      await DatabseHelper.insertData(newUser);
+
     }
+    _reloadData();
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey,
